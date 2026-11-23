@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IoT Dashboard Pro — REST API, WebSocket & SQLite</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body {
+      background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+      min-height: 100vh;
+      padding: 24px;
+      color: #2d3748;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    h1 {
+      text-align: center;
+      color: #fff;
+      margin-bottom: 24px;
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+    .alert-banner {
+      display: none;
+      background: #e53e3e;
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-weight: 600;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(229, 62, 62, 0.35);
+    }
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+    .stat-card { text-align: center; }
+    .stat-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #718096;
+      letter-spacing: 0.6px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+    .stat-value {
+      font-size: 2.3rem;
+      font-weight: 700;
+      color: #5a67d8;
+      margin-bottom: 4px;
+    }
+    .stat-value.orange { color: #dd6b20; }
+    .stat-unit { font-size: 0.9rem; color: #a0aec0; }
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+    .badge.live { background: #c6f6d5; color: #22543d; }
+    .badge.offline { background: #fed7d7; color: #822727; }
+
+    .section { margin-bottom: 20px; }
+    .section h2 { font-size: 1.1rem; margin-bottom: 14px; color: #1a202c; }
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .form-row label { font-weight: 600; min-width: 140px; font-size: 0.92rem; }
+    input[type="text"], input[type="number"] {
+      padding: 9px 12px;
+      border: 1px solid #cbd5e0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    input:focus { border-color: #5a67d8; }
+    button {
+      padding: 9px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+    .btn-primary { background: #5a67d8; }
+    .btn-success { background: #38a169; }
+    .btn-danger { background: #e53e3e; }
+
+    .chart-wrapper { position: relative; height: 280px; width: 100%; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #edf2f7; }
+    th { background: #f7fafc; color: #4a5568; font-weight: 600; }
+
+    .log-box {
+      background: #1a202c;
+      color: #a0aec0;
+      font-family: 'Consolas', monospace;
+      font-size: 0.85rem;
+      padding: 14px;
+      border-radius: 10px;
+      height: 170px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+    .log-ok { color: #68d391; }
+    .log-err { color: #fc8181; }
+    .log-info { color: #63b3ed; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>IoT Dashboard Pro — REST API, WebSocket &amp; SQLite</h1>
+
+    <div id="alertBanner" class="alert-banner"></div>
+
+    <!-- Kartu Status -->
+    <div class="grid-cards">
+      <div class="card stat-card">
+        <div class="stat-label">Suhu</div>
+        <div id="valSuhu" class="stat-value">--</div>
+        <div class="stat-unit">&deg;C</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-label">Kelembaban</div>
+        <div id="valKelembaban" class="stat-value">--</div>
+        <div class="stat-unit">%</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-label">Batas Suhu (Threshold)</div>
+        <div id="valThreshold" class="stat-value orange">30</div>
+        <div class="stat-unit">&deg;C</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-label">Koneksi WebSocket</div>
+        <div id="wsBadge" class="badge offline">OFFLINE</div>
+      </div>
+    </div>
+
+    <!-- Pengaturan API Key & Threshold -->
+    <div class="card section">
+      <h2>Pengaturan API Key &amp; Batas Suhu (PUT /api/threshold)</h2>
+      <div class="form-row">
+        <label for="apiKey">X-API-Key:</label>
+        <input type="text" id="apiKey" value="iot-secret-key-2026" style="width: 220px;" />
+        <button class="btn-primary" onclick="loadHistory()">Muat Ulang History (SQLite)</button>
+      </div>
+      <div class="form-row">
+        <label for="inputThreshold">Set Batas Suhu (&deg;C):</label>
+        <input type="number" id="inputThreshold" value="30" step="0.5" style="width: 100px;" />
+        <button class="btn-primary" onclick="updateThreshold()">Simpan Threshold</button>
+      </div>
+    </div>
+
+    <!-- Grafik Real-Time -->
+    <div class="card section">
+      <h2>Grafik Real-Time Suhu &amp; Kelembaban (Chart.js)</h2>
+      <div class="chart-wrapper">
+        <canvas id="sensorChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Kontrol Perangkat -->
+    <div class="card section">
+      <h2>Kontrol Perangkat (POST /api/kontrol)</h2>
+      <div class="form-row">
+        <button class="btn-success" onclick="kirimKontrol('lamp', 'on')">Nyalakan Lampu</button>
+        <button class="btn-danger" onclick="kirimKontrol('lamp', 'off')">Matikan Lampu</button>
+      </div>
+    </div>
+
+    <!-- Tabel History -->
+    <div class="card section">
+      <h2>10 Data Sensor Terakhir (SQLite)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Waktu</th>
+            <th>Suhu (&deg;C)</th>
+            <th>Kelembaban (%)</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody">
+          <tr><td colspan="3" style="text-align:center;color:#a0aec0;">Memuat data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Log Aktivitas -->
+    <div class="card section">
+      <h2>Log Aktivitas</h2>
+      <div id="logBox" class="log-box"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.protocol.startsWith('http')
+      ? window.location.origin
+      : 'http://localhost:1880';
+    const WS_URL = API_BASE.replace(/^http/, 'ws') + '/ws/sensor';
+
+    let currentThreshold = 30;
+    let historyList = [];
+
+    function addLog(msg, type = 'info') {
+      const box = document.getElementById('logBox');
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = type === 'ok' ? 'log-ok' : (type === 'err' ? 'log-err' : 'log-info');
+      div.textContent = `[${time}] ${msg}`;
+      box.prepend(div);
+    }
+
+    function getHeaders() {
+      return {
+        'Content-Type': 'application/json',
+        'X-API-Key': document.getElementById('apiKey').value.trim()
+      };
+    }
+
+    // Setup Chart.js
+    const ctx = document.getElementById('sensorChart').getContext('2d');
+    const sensorChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Suhu (°C)',
+            data: [],
+            borderColor: '#e53e3e',
+            backgroundColor: 'rgba(229, 62, 62, 0.12)',
+            tension: 0.35,
+            fill: true
+          },
+          {
+            label: 'Kelembaban (%)',
+            data: [],
+            borderColor: '#3182ce',
+            backgroundColor: 'rgba(49, 130, 206, 0.12)',
+            tension: 0.35,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: false } }
+      }
+    });
+
+    function pushChartPoint(label, suhu, kelembaban) {
+      sensorChart.data.labels.push(label);
+      sensorChart.data.datasets[0].data.push(suhu);
+      sensorChart.data.datasets[1].data.push(kelembaban);
+      if (sensorChart.data.labels.length > 20) {
+        sensorChart.data.labels.shift();
+        sensorChart.data.datasets[0].data.shift();
+        sensorChart.data.datasets[1].data.shift();
+      }
+      sensorChart.update('none');
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('historyBody');
+      const last10 = historyList.slice(-10).reverse();
+      if (last10.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#a0aec0;">Belum ada data</td></tr>';
+        return;
+      }
+      tbody.innerHTML = last10.map(item => {
+        const waktu = item.timestamp || (item.received ? new Date(item.received).toLocaleTimeString() : '-');
+        return `<tr><td>${waktu}</td><td>${item.suhu}</td><td>${item.kelembaban}</td></tr>`;
+      }).join('');
+    }
+
+    function updateAlert(suhu, threshold, customMsg) {
+      const banner = document.getElementById('alertBanner');
+      if (Number(suhu) > Number(threshold)) {
+        banner.textContent = customMsg || `PERINGATAN: Suhu ${suhu} °C melewati batas (${threshold} °C)!`;
+        banner.style.display = 'block';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+
+    // GET /api/history (SQLite)
+    async function loadHistory() {
+      try {
+        const res = await fetch(`${API_BASE}/api/history`, { headers: getHeaders() });
+        const json = await res.json();
+        if (!res.ok) {
+          addLog(`${res.status}: ${json.message || 'Gagal memuat history'}`, 'err');
+          return;
+        }
+        historyList = json.data || [];
+        sensorChart.data.labels = [];
+        sensorChart.data.datasets[0].data = [];
+        sensorChart.data.datasets[1].data = [];
+
+        historyList.slice(-20).forEach(item => {
+          const lbl = item.timestamp ? item.timestamp.slice(-8) : '';
+          sensorChart.data.labels.push(lbl);
+          sensorChart.data.datasets[0].data.push(item.suhu);
+          sensorChart.data.datasets[1].data.push(item.kelembaban);
+        });
+        sensorChart.update();
+        renderTable();
+
+        if (historyList.length > 0) {
+          const latest = historyList[historyList.length - 1];
+          document.getElementById('valSuhu').textContent = latest.suhu;
+          document.getElementById('valKelembaban').textContent = latest.kelembaban;
+        }
+        addLog(`Berhasil memuat ${historyList.length} data history dari SQLite`, 'ok');
+      } catch (err) {
+        addLog(`Error memuat history: ${err.message}`, 'err');
+      }
+    }
+
+    // PUT /api/threshold
+    async function updateThreshold() {
+      const val = Number(document.getElementById('inputThreshold').value);
+      try {
+        const res = await fetch(`${API_BASE}/api/threshold`, {
+          method: 'PUT',
+          headers: getHeaders(),
+          body: JSON.stringify({ threshold: val })
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          addLog(`${res.status}: ${json.message || 'Gagal update threshold'}`, 'err');
+          return;
+        }
+        currentThreshold = json.threshold;
+        document.getElementById('valThreshold').textContent = currentThreshold;
+        const currentSuhu = document.getElementById('valSuhu').textContent;
+        if (currentSuhu !== '--') updateAlert(currentSuhu, currentThreshold);
+        addLog(`Threshold diperbarui menjadi ${currentThreshold} °C`, 'ok');
+      } catch (err) {
+        addLog(`Error update threshold: ${err.message}`, 'err');
+      }
+    }
+
+    // POST /api/kontrol
+    async function kirimKontrol(device, action) {
+      try {
+        const res = await fetch(`${API_BASE}/api/kontrol`, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ device, action })
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          addLog(`${res.status}: ${json.message || 'Gagal kirim kontrol'}`, 'err');
+          return;
+        }
+        addLog(`Perintah terkirim: ${device} -> ${action}`, 'ok');
+      } catch (err) {
+        addLog(`Error kontrol: ${err.message}`, 'err');
+      }
+    }
+
+    // WebSocket Real-Time
+    function connectWS() {
+      const badge = document.getElementById('wsBadge');
+      const ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        badge.textContent = 'LIVE (WS)';
+        badge.className = 'badge live';
+        addLog('WebSocket terhubung ke /ws/sensor', 'ok');
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'sensor_update' && msg.data) {
+            const d = msg.data;
+            currentThreshold = msg.threshold ?? currentThreshold;
+            document.getElementById('valSuhu').textContent = d.suhu;
+            document.getElementById('valKelembaban').textContent = d.kelembaban;
+            document.getElementById('valThreshold').textContent = currentThreshold;
+
+            const lbl = d.timestamp ? d.timestamp.slice(-8) : new Date().toLocaleTimeString();
+            pushChartPoint(lbl, d.suhu, d.kelembaban);
+            historyList.push(d);
+            renderTable();
+            updateAlert(d.suhu, currentThreshold, msg.alert_message);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      ws.onclose = () => {
+        badge.textContent = 'RECONNECTING...';
+        badge.className = 'badge offline';
+        setTimeout(connectWS, 3000);
+      };
+    }
+
+    // Inisialisasi
+    loadHistory();
+    connectWS();
+  </script>
+</body>
+</html>
