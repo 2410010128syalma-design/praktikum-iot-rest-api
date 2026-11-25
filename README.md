@@ -6,3 +6,8 @@
 <img width="661" height="153" alt="Screenshot 2026-11-23 150549" src="https://github.com/user-attachments/assets/327ef878-dc5a-4b82-a453-06f3c38a9a0b" />
 <img width="950" height="473" alt="Screenshot 2026-11-23 150924" src="https://github.com/user-attachments/assets/84ad53e7-bd6a-4fbe-9b24-1b6e90f20f75" />
 
+
+## Dashboard tugas 10
+<img width="958" height="437" alt="Screenshot 2026-11-25 221825" src="https://github.com/user-attachments/assets/f09cfe8d-1f8c-4125-a6af-ec9e4335367e" />
+
+
