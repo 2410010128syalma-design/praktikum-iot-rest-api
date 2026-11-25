@@ -1,0 +1,193 @@
+[
+    {
+        "id": "c727baf94390d5d9",
+        "type": "tab",
+        "label": "Dashboard IoT Materi 10",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "2a9f331afd24f3bb",
+        "type": "mqtt in",
+        "z": "c727baf94390d5d9",
+        "name": "Subscribe Suhu",
+        "topic": "iot/2410010128/sensor/suhu",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "fbbac0e9c790c79a",
+        "inputs": 0,
+        "x": 160,
+        "y": 100,
+        "wires": [
+            [
+                "71c57de2375797c8"
+            ]
+        ]
+    },
+    {
+        "id": "71c57de2375797c8",
+        "type": "ui_gauge",
+        "z": "c727baf94390d5d9",
+        "name": "Gauge Suhu",
+        "group": "42494b58cfcfaff6",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Suhu DHT22",
+        "label": "°C",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "50",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "28",
+        "seg2": "33",
+        "x": 410,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "74a98201022dee36",
+        "type": "ui_switch",
+        "z": "c727baf94390d5d9",
+        "name": "Switch Relay",
+        "label": "Kontrol Relay (GPIO 26)",
+        "tooltip": "",
+        "group": "ecf1c9a94d57fbc7",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "decouple": "false",
+        "topic": "iot/2410010128/aktuator/relay",
+        "topicType": "str",
+        "style": "",
+        "onvalue": "ON",
+        "onvalueType": "str",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "OFF",
+        "offvalueType": "str",
+        "officon": "",
+        "offcolor": "",
+        "animate": true,
+        "x": 160,
+        "y": 200,
+        "wires": [
+            [
+                "17fd644f9571c2f5"
+            ]
+        ]
+    },
+    {
+        "id": "17fd644f9571c2f5",
+        "type": "mqtt out",
+        "z": "c727baf94390d5d9",
+        "name": "Publish Relay",
+        "topic": "iot/2410010128/aktuator/relay",
+        "qos": "0",
+        "retain": "false",
+        "broker": "fbbac0e9c790c79a",
+        "x": 410,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "c373c643be56c6e8",
+        "type": "ui_slider",
+        "z": "c727baf94390d5d9",
+        "name": "Slider PWM LED",
+        "label": "Kecerahan LED PWM (GPIO 2)",
+        "tooltip": "",
+        "group": "ecf1c9a94d57fbc7",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "outs": "all",
+        "topic": "iot/2410010128/aktuator/pwm",
+        "topicType": "str",
+        "min": 0,
+        "max": "255",
+        "step": 1,
+        "x": 170,
+        "y": 300,
+        "wires": [
+            [
+                "53de6befcc8c0b3c"
+            ]
+        ]
+    },
+    {
+        "id": "53de6befcc8c0b3c",
+        "type": "mqtt out",
+        "z": "c727baf94390d5d9",
+        "name": "Publish PWM",
+        "topic": "iot/2410010128/aktuator/pwm",
+        "qos": "0",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "fbbac0e9c790c79a",
+        "x": 410,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "fbbac0e9c790c79a",
+        "type": "mqtt-broker",
+        "name": "Local Mosquitto",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "node-red-materi10",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true
+    },
+    {
+        "id": "42494b58cfcfaff6",
+        "type": "ui_group",
+        "name": "Monitoring Suhu (DHT22)",
+        "tab": "f6a8d820beb53763",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "ecf1c9a94d57fbc7",
+        "type": "ui_group",
+        "name": "Kontrol Aktuator",
+        "tab": "f6a8d820beb53763",
+        "order": 2,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "f6a8d820beb53763",
+        "type": "ui_tab",
+        "name": "Monitoring & Kontrol IoT",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "d0d1d443f1dda85b",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-dashboard": "3.6.6"
+        }
+    }
+]
